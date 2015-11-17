@@ -5,9 +5,9 @@ import numpy as np
 from six.moves import range
 
 if theano.config.floatX == 'float64':
-    epsilon = 1.0e-9
+    epsilon = 1.0e-6
 else:
-    epsilon = 1.0e-7
+    epsilon = 1.0e-5
 
 
 def mean_squared_error(y_true, y_pred):
