@@ -54,14 +54,14 @@ def slice_X(X, start=None, stop=None):
         if hasattr(start, '__len__'):
             # hdf5 dataset only support list object as indices
             if hasattr(start, 'shape'):
-            	start = start.tolist()
+                start = start.tolist()
             return [x[start] for x in X]
         else:
             return [x[start:stop] for x in X]
     else:
         if hasattr(start, '__len__'):
             if hasattr(start, 'shape'):
-            	start = start.tolist()
+                start = start.tolist()
             return X[start]
         else:
             return X[start:stop]
@@ -92,7 +92,8 @@ def standardize_weights(y, sample_weight=None, class_weight=None):
         if len(y.shape) > 3:
             raise Exception('class_weight not supported for 4+ dimensional targets.')
         yshape = y.shape
-        y = np.reshape(y, (-1, yshape[-1]))  # for time-distributed data, collapse time and sample
+        # for time-distributed data, collapse time and sample
+        y = np.reshape(y, (-1, yshape[-1]))
         if y.shape[1] > 1:
             y_classes = y.argmax(axis=1)
         elif y.shape[1] == 1:
@@ -105,29 +106,29 @@ def standardize_weights(y, sample_weight=None, class_weight=None):
         return np.ones(y.shape[:-1] + (1,))
 
 
-def model_from_yaml(yaml_string, custom_layers={}):
+def model_from_yaml(yaml_string, custom_objects={}):
     '''
         Returns a model generated from a local yaml file,
         which is either created by hand or from to_yaml method of Sequential or Graph
     '''
     import yaml
     config = yaml.load(yaml_string)
-    return model_from_config(config, custom_layers=custom_layers)
+    return model_from_config(config, custom_objects=custom_objects)
 
 
-def model_from_json(json_string, custom_layers={}):
+def model_from_json(json_string, custom_objects={}):
     import json
     config = json.loads(json_string)
-    return model_from_config(config, custom_layers=custom_layers)
+    return model_from_config(config, custom_objects=custom_objects)
 
 
-def model_from_config(config, custom_layers={}):
+def model_from_config(config, custom_objects={}):
     model_name = config.get('name')
     if model_name not in {'Graph', 'Sequential'}:
         raise Exception('Unrecognized model:', model_name)
 
     # Create a container then set class to appropriate model
-    model = container_from_config(config, custom_layers=custom_layers)
+    model = container_from_config(config, custom_objects=custom_objects)
     if model_name == 'Graph':
         model.__class__ = Graph
     elif model_name == 'Sequential':
@@ -658,7 +659,8 @@ class Graph(Model, containers.Graph):
             val_f = self._test
         if validation_data:
             # can't use sample weights with validation data at this point
-            sample_weight = [standardize_weights(validation_data[name]) for name in self.output_order]
+            y_val = [standardize_y(data[name]) for name in self.output_order]
+            sample_weight = [standardize_weights(y_val[i]) for i in range(len(y_val))]
             val_ins = [validation_data[name] for name in self.input_order] + [standardize_y(validation_data[name]) for name in self.output_order] + sample_weight
 
         elif 0 < validation_split < 1:
